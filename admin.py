@@ -58,12 +58,11 @@ def get_db_conf():
     '''
     if 'db_conf' not in resources:
         BASE = get_base()
-        fn_prefix = BASE / 'enc'
         fn_default = 'tables.yaml'
         cfg = get_cfg()
         filename = pathlib.Path ( cfg.get( 'ENC', 'db_conf', fallback=fn_default ) )
         if not filename.is_absolute():
-            filename = fn_prefix / filename
+            filename = BASE / filename
         data = load_yaml_file( filename )
         resources['db_conf'] = data['Nodes']
     return resources['db_conf']
@@ -228,10 +227,10 @@ def get_db_conn():
     if not 'db_conn' in resources:
         BASE = get_base()
         cfg = get_cfg()
-        default = BASE / 'enc' / 'puppet_enc.sqlite'
-        filename = cfg.get( 'ENC', 'db_file', fallback=default )
-        if not filename.startswith('/'):
-            filename = BASE / 'enc' / filename
+        default = BASE / 'puppet_enc.sqlite'
+        filename = pathlib.Path( cfg.get( 'ENC', 'db_file', fallback=default ) )
+        if not filename.is_absolute():
+            filename = BASE / filename
         try:
             conn = sqlite3.connect( str( filename ) )
         except (sqlite3.Error) as e:
