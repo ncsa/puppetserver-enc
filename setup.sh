@@ -39,6 +39,7 @@ venvdir="$BASE/.venv"
     "$PYTHON" -m venv "$venvdir"
     PIP="$venvdir/bin/pip"
     "$PIP" install --upgrade pip
+    "$PIP" install wheel
     "$PIP" install -r "$BASE/requirements.txt"
 }
 V_PYTHON="$venvdir/bin/python"
