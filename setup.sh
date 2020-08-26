@@ -47,7 +47,7 @@ V_PYTHON="$venvdir/bin/python"
 ###
 # Setup ENC
 ###
-ENC_FN="$BASE/enc/admin.py"
+ENC_FN="$BASE/admin.py"
 
 # Configure admin.py to use venv python
 set_shebang_path "$V_PYTHON" "$ENC_FN"
