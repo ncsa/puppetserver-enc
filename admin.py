@@ -501,7 +501,7 @@ def do_lookup():
         # Build output data hash
         enc = { 'parameters': { 'enc_hostname': node } }
         if len( db_data ) > 1:
-            enc['environment'] = db_data.pop( 'environment', 'production' ),
+            enc['environment'] = db_data.pop( 'environment', 'production' )
             enc['parameters'].update( db_data )
             # add "classes" key only if roles defined in a module
             if role_model == 'module':
