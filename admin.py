@@ -47,7 +47,7 @@ def get_cfg():
     if 'cfg' not in resources:
         BASE = get_base()
         cfg = configparser.ConfigParser()
-        cfg.read( BASE / 'config' / 'config.ini' )
+        cfg.read( BASE / 'config.ini' )
         resources['cfg'] = cfg
     return resources['cfg']
 
@@ -482,6 +482,7 @@ def do_lookup():
     args = get_args()
     cfg = get_cfg()
     role_model = cfg.get( 'ENC', 'role_model', fallback='module' )
+    logger.debug( f"Role model: '{role_model}'" )
     if role_model not in ( 'module', 'hiera' ):
         raise UserWarning( f"Invalid role_model '{role_model}'" )
     node = None
