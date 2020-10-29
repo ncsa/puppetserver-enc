@@ -1,68 +1,103 @@
 #!/bin/bash
 
-DEBUG=1
-PUPPET=/opt/puppetlabs/bin/puppet
+YES=0
+NO=1
+DEBUG=$YES
+VERBOSE=$YES
 
 
-die() {
-    echo "ERROR: $*" >&2
-    exit 2
+croak() {
+    echo "ERROR $*" >&2
+    kill -s TERM $BASHPID
+    exit 99
+}
+
+
+log() {
+  [[ $VERBOSE -eq $YES ]] || return
+  echo "INFO $*" >&2
+}
+
+
+debug() {
+  [[ $DEBUG -eq $YES ]] || return
+  echo "DEBUG (${BASH_SOURCE[1]} [${BASH_LINENO[0]}] ${FUNCNAME[1]}) $*"
+}
+
+
+set_install_dir() {
+    [[ $DEBUG -eq $YES ]] && set -x
+    INSTALL_DIR=/etc/puppetlabs/enc
+    [[ -n "$PUP_ENC_DIR" ]] && INSTALL_DIR="$PUP_ENC_DIR"
+
+    [[ -z "$INSTALL_DIR" ]] \
+        && croak "Unable to determine install base. Try setting 'PUP_ENC_DIR' env var."
+
+    [[ -d "$INSTALL_DIR" ]] || mkdir -p $INSTALL_DIR
+
+    [[ -d "$INSTALL_DIR" ]] \
+    || croak "Unable to find or create script dir: '$INSTALL_DIR'"
+}
+
+
+ensure_python() {
+    [[ $DEBUG -eq $YES ]] && set -x
+    PYTHON=$(which python3) 2>/dev/null
+    [[ -n "$PY3_PATH" ]] && PYTHON=$PY3_PATH
+    [[ -z "$PYTHON" ]] && croak "Unable to find Python3. Try setting 'PY3_PATH' env var."
+    PYTHON=$( realpath -e "$PYTHON" )
+    [[ -x "$PYTHON" ]] || croak "Found Python3 at '$PYTHON' but it's not executable."
+    "$PYTHON" "$BASE/require_py_v3.py" || croak "Python version too low"
+    "$PYTHON" -m ensurepip
+}
+
+
+setup_python_venv() {
+    [[ $DEBUG -eq $YES ]] && set -x
+    venvdir="$INSTALL_DIR/.venv"
+    [[ -d "$venvdir" ]] || {
+        "$PYTHON" -m venv "$venvdir"
+        PIP="$venvdir/bin/pip"
+        "$PIP" install --upgrade pip
+        "$PIP" install -r "$BASE/requirements.txt"
+    }
+    V_PYTHON="$venvdir/bin/python"
+    [[ -x "$V_PYTHON" ]] || croak "Something went wrong during python venv install."
 }
 
 
 set_shebang_path() {
-    [[ $DEBUG -gt 0 ]] && set -x
+    [[ $DEBUG -eq $YES ]] && set -x
     newpath="$1"
     shift
     sed -i -e "1 c \#\!$newpath" "$@"
 }
 
 
-[[ $DEBUG -gt 0 ]] && set -x
+install_scripts() {
+    [[ $DEBUG -eq $YES ]] && set -x
 
-# Get install directory
-BASE=$(readlink -e $( dirname $0 ) ) 
-[[ -n "$PUP_ENC_DIR" ]] && BASE="$PUP_ENC_DIR"
-[[ -z "$BASE" ]] && die "Unable to determine install base. Try setting PUP_ENC_DIR env var."
+    # Install admin.py, backup existing if it differs
+    set_shebang_path "$V_PYTHON" "$BASE/admin.py"
+    install -vbC --suffix="$TS" -t "$INSTALL_DIR" "$BASE/admin.py"
 
-# Find python3
-[[ -z "$PYTHON" ]] && PYTHON=$(which python3) 2>/dev/null
-[[ -n "$PY3_PATH" ]] && PYTHON=$PY3_PATH
-[[ -z "$PYTHON" ]] && die "Unable to find Python3. Try setting PY3_PATH env var."
-
-# Verify python is version 3
-"$PYTHON" "$BASE/require_py_v3.py" || die "Python version too low"
-
-# Setup python virtual env
-venvdir="$BASE/.venv"
-[[ -d "$venvdir" ]] || {
-    "$PYTHON" -m venv "$venvdir"
-    PIP="$venvdir/bin/pip"
-    "$PIP" install --upgrade pip
-    "$PIP" install wheel
-    "$PIP" install -r "$BASE/requirements.txt"
-}
-V_PYTHON="$venvdir/bin/python"
-[[ -x "$V_PYTHON" ]] || die "Something went wrong during python venv install."
-
-###
-# Setup ENC
-###
-ENC_FN="$BASE/admin.py"
-
-# Configure admin.py to use venv python
-set_shebang_path "$V_PYTHON" "$ENC_FN"
-
-# Configure puppetserver to use enc
-# if puppet not installed, don't bother (allows testing on dev node)
-[[ -f "$PUPPET" ]] && {
-    $PUPPET config set node_terminus exec --section master
-    $PUPPET config set external_nodes "$ENC_FN" --section master
+    # Install config files only if they don't already exist
+    for fn in tables.yaml config.ini; do
+        [[ -f "$INSTALL_DIR/$fn" ]] || cp "$BASE/$fn" "$INSTALL_DIR"
+    done
 }
 
-# Create shortcut symlinks for enc admin
-for l in enc_admin enc_adm; do
-    lname="/usr/local/sbin/$l"
-    [[ -f "$lname" ]] \
-    || ln -s "$ENC_FN" "$lname"
-done
+
+[[ $DEBUG -eq $YES ]] && set -x
+BASE=$(readlink -e $( dirname $0 ) )
+TS=$(date +%s)
+
+set_install_dir
+log "Installing into: '$INSTALL_DIR'"
+
+ensure_python
+debug "Got PYTHON: '$PYTHON'"
+
+setup_python_venv
+
+install_scripts

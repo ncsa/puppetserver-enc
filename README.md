@@ -10,12 +10,12 @@ These will be fetched automatically during install:
 * https://pyyaml.org/wiki/PyYAMLDocumentation
 
 # Installation
-1. `export PUP_ENC_DIR=/etc/puppetlabs/enc`
-1. `git clone https://github.com/ncsa/puppetserver-enc.git $PUP_ENC_DIR`
-1. (optional) `vim $PUP_ENC_DIR/config/config.ini`
-1. (optional) `export PY3_PATH=</path/to/python3>`
-1. `$PUP_ENC_DIR/configure.sh`
+1. `export QS_REPO=https://github.com/ncsa/puppetserver-enc.git`
+1. `curl https://raw.githubusercontent.com/andylytical/quickstart/master/quickstart.sh | bash`
 
+### Customizable Install Options
+- Pull from a branch other than master
+`export QS_GIT_BRANCH=branch_name`
 
 # Quickstart
 1. `admin.py --help`
