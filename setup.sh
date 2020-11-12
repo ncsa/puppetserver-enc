@@ -4,6 +4,7 @@ YES=0
 NO=1
 DEBUG=$YES
 VERBOSE=$YES
+PUPPET=/opt/puppetlabs/bin/puppet
 
 
 croak() {
@@ -87,6 +88,15 @@ install_scripts() {
     done
 }
 
+configure_puppetserver() {
+    # Configure puppetserver to use enc
+    # if puppet not installed, don't bother (allows testing on dev node)
+    [[ -f "$PUPPET" ]] && {
+        $PUPPET config set node_terminus exec --section master
+        $PUPPET config set external_nodes "$BASE/admin.py" --section master
+    }
+}
+
 
 [[ $DEBUG -eq $YES ]] && set -x
 BASE=$(readlink -e $( dirname $0 ) )
@@ -101,3 +111,5 @@ debug "Got PYTHON: '$PYTHON'"
 setup_python_venv
 
 install_scripts
+
+configure_puppetserver
