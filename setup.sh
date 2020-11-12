@@ -93,7 +93,7 @@ configure_puppetserver() {
     # if puppet not installed, don't bother (allows testing on dev node)
     [[ -f "$PUPPET" ]] && {
         $PUPPET config set node_terminus exec --section master
-        $PUPPET config set external_nodes "$BASE/admin.py" --section master
+        $PUPPET config set external_nodes "$INSTALL_DIR/admin.py" --section master
     }
 }
 
