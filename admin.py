@@ -472,6 +472,7 @@ def do_list():
             where_parts.append( f'{primary_key} LIKE "%{node}%"' )
         sqlparts.append( ' OR '.join( where_parts ) )
         sqlparts.append( ')' )
+    sqlparts.append( f' ORDER BY {primary_key} ASC')
     cur = run_sql( ' '.join( sqlparts ) )
     rows = cur.fetchall()
     tablefmt = 'simple'
